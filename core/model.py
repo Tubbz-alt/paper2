@@ -16,6 +16,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import core.utils as utils
 
 from core.wing import FAN
 
@@ -208,9 +209,9 @@ class Generator_unet(nn.Module):
         # encoder 
         for i in range(repeat_num):
             in_c = dim_in
-            if(in_c*2 > 512): 
-                out_c = 512 
-                dim_in = 512
+            if(in_c*2 > max_conv_dim): 
+                out_c = max_conv_dim 
+                dim_in = max_conv_dim
             else: 
                 out_c = in_c*2
                 dim_in = in_c*2
@@ -228,7 +229,7 @@ class Generator_unet(nn.Module):
                 out_c = dim_out //2
                 dim_out = dim_out //2
             if(i==0):
-                up = nn.ConvTranspose2d(in_c, out_c, 3, 1, 1)
+                up = nn.ConvTranspose2d(in_c+style_dim, out_c, 3, 1, 1)
             else:
                 up = nn.ConvTranspose2d(in_c*2, out_c, 4, 2, 1)
 
@@ -242,10 +243,14 @@ class Generator_unet(nn.Module):
         for down in self.down_layers:
             x = down(x)
             skip.append(x)
-        
-        x = self.norm(x, s)
-        x = self.actv(x)
-        
+        print("x.shape", x.shape)
+        print("s.shape", s.shape)
+
+        x = utils.tile_concat(x, s)
+        print("x.shape", x.shape)
+        # x = self.norm(x, s)
+        # x = self.actv(x)
+
         for up in self.up_layers:
             x = up(x)
             if(len(skip)-i-1>0):

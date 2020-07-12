@@ -277,3 +277,18 @@ def save_video(fname, images, output_fps=30, vcodec='libx264', filters=''):
 def tensor2ndarray255(images):
     images = torch.clamp(images * 0.5 + 0.5, 0, 1)
     return images.cpu().numpy().transpose(0, 2, 3, 1) * 255
+
+def tile_concat(a_list, b_list=[]):
+    # tile all elements of `b_list` and then concat `a_list + b_list` along the channel axis
+    # `a` shape: (N, H, W, C_a)
+    # `b` shape: can be (N, 1, 1, C_b) or (N, C_b)
+    a_list = list(a_list) if isinstance(a_list, (list, tuple)) else [a_list]
+    b_list = list(b_list) if isinstance(b_list, (list, tuple)) else [b_list]
+    for i, b in enumerate(b_list):
+        print("b.shape",b.shape)
+        b = torch.reshape(b, [-1, b.shape[-1],1, 1])
+        print("b.shape",b.shape)
+        b = b.repeat([1, 1, a_list[0].shape[2], a_list[0].shape[3]])
+        print("b.shape",b.shape)
+        b_list[i] = b
+    return torch.cat(a_list + b_list, dim=1)
