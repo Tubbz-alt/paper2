@@ -202,6 +202,9 @@ class Generator_unet(nn.Module):
         self.up_layers = nn.ModuleList()
         self.deconv = nn.ConvTranspose2d(64, 3, 3, 1, 1)
         skip_layer = nn.ModuleList()
+        self.actv = nn.LeakyReLU(0.2)
+        self.norm = AdaIN(style_dim, dim_in)
+
         # encoder 
         for i in range(repeat_num):
             in_c = dim_in
@@ -233,26 +236,24 @@ class Generator_unet(nn.Module):
             
     def forward(self, x, s, masks=None):
         i = 0 
-        s = []
-        # print("input x.shape", x.shape)
+        skip = []
         x = self.from_rgb(x)
-        s.append(x)
-        # print("rgb x.shape", x.shape)
+        skip.append(x)
         for down in self.down_layers:
             x = down(x)
-            s.append(x)
-            # print("down x.shape", x.shape)
-
+            skip.append(x)
+        
+        x = self.norm(x, s)
+        x = self.actv(x)
+        
         for up in self.up_layers:
             x = up(x)
-            if(len(s)-i-1>0):
-                index = len(s)-i-1
-                x = torch.cat((x,s[index]), 1)
-            # print("up x.shape", x.shape)
+            if(len(skip)-i-1>0):
+                index = len(skip)-i-1
+                x = torch.cat((x,skip[index]), 1)
             i = i+1
 
         x = self.deconv(x)
-        # print("up x.shape", x.shape)   
         return x
 
 class MappingNetwork(nn.Module):
