@@ -261,6 +261,86 @@ class Generator_unet(nn.Module):
         x = self.deconv(x)
         return x
 
+class Generator_wnet(nn.Module):
+    def __init__(self, img_size=256, style_dim=64, max_conv_dim=512, w_hpf=1):
+        super().__init__()
+        repeat_num = int(np.log2(img_size)) - 3
+        dim_in = 64
+        dim_out = max_conv_dim
+        self.img_size = img_size
+        self.from_rgb = nn.Conv2d(3, dim_in, 3, 1, 1)  # (in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True, padding_mode='zeros')
+        self.down_layers = nn.ModuleList()
+        self.up_layers = nn.ModuleList()
+        self.up2_layers = nn.ModuleList()
+        self.deconv = nn.ConvTranspose2d(64, 3, 3, 1, 1)
+        skip_layer = nn.ModuleList()
+        self.actv = nn.LeakyReLU(0.2)
+        self.norm = AdaIN(style_dim, dim_in)
+
+        # U1/U2 encoder 
+        for i in range(repeat_num):
+            in_c = dim_in
+            if(in_c*2 > max_conv_dim): 
+                out_c = max_conv_dim 
+                dim_in = max_conv_dim
+            else: 
+                out_c = in_c*2
+                dim_in = in_c*2
+            down = nn.Conv2d(in_c, out_c, 4, 2, 1)
+            self.down_layers.append(down)
+            skip_layer.append(down)
+
+        # U1 decoder 
+        for i in range(repeat_num+1):
+            in_c = dim_out
+            if(dim_out // 2 < 8): 
+                out_c = 3 
+                dim_out = 3
+            elif (i > 2): 
+                out_c = dim_out //2
+                dim_out = dim_out //2
+            if(i==0):
+                up = nn.ConvTranspose2d(in_c, out_c, 3, 1, 1)
+                up2 = nn.ConvTranspose2d(in_c+style_dim, out_c, 3, 1, 1)
+            else:
+                up = nn.ConvTranspose2d(in_c*2, out_c, 4, 2, 1)
+            self.up_layers.append(up)
+            self.up2_layers.append(up2)
+            
+    def forward(self, x, s, masks=None):
+        i = 0 
+        skip = []
+        x = self.from_rgb(x)
+        skip.append(x)
+        # U1 
+        for down in self.down_layers:
+            x = down(x)
+            skip.append(x)
+        for up in self.up_layers:
+            x = up(x)
+            if(len(skip)-i-1>0):
+                index = len(skip)-i-1
+                x = torch.cat((x,skip[index]), 1)
+            i = i+1
+        x = self.deconv(x)
+
+        # U2 
+        skip = []
+        for down in self.down_layers:
+            x = down(x)
+            skip.append(x)
+
+        x = utils.tile_concat(x, s)
+
+        for up in self.up_layers:
+            x = up(x)
+            if(len(skip)-i-1>0):
+                index = len(skip)-i-1
+                x = torch.cat((x,skip[index]), 1)
+            i = i+1
+        x = self.deconv(x)
+        return x
+
 class MappingNetwork(nn.Module):
     def __init__(self, latent_dim=16, style_dim=64, num_domains=2):
         super().__init__()
