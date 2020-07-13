@@ -172,9 +172,9 @@ class Generator(nn.Module):
             self.hpf = HighPass(w_hpf, device)
 
     def forward(self, x, s, masks=None):
-        print("input x.shape", x.shape)
+        # print("input x.shape", x.shape)
         x = self.from_rgb(x)
-        print("x.shape", x.shape)
+        # print("x.shape", x.shape)
         cache = {}
         for block in self.encode:
             if (masks is not None) and (x.size(2) in [32, 64, 128]):
@@ -243,11 +243,11 @@ class Generator_unet(nn.Module):
         for down in self.down_layers:
             x = down(x)
             skip.append(x)
-        print("x.shape", x.shape)
-        print("s.shape", s.shape)
+        # print("x.shape", x.shape)
+        # print("s.shape", s.shape)
 
         x = utils.tile_concat(x, s)
-        print("x.shape", x.shape)
+        # print("x.shape", x.shape)
         # x = self.norm(x, s)
         # x = self.actv(x)
 

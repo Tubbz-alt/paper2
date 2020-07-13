@@ -285,10 +285,10 @@ def tile_concat(a_list, b_list=[]):
     a_list = list(a_list) if isinstance(a_list, (list, tuple)) else [a_list]
     b_list = list(b_list) if isinstance(b_list, (list, tuple)) else [b_list]
     for i, b in enumerate(b_list):
-        print("b.shape",b.shape)
+        # print("b.shape",b.shape)
         b = torch.reshape(b, [-1, b.shape[-1],1, 1])
-        print("b.shape",b.shape)
+        # print("b.shape",b.shape)
         b = b.repeat([1, 1, a_list[0].shape[2], a_list[0].shape[3]])
-        print("b.shape",b.shape)
+        # print("b.shape",b.shape)
         b_list[i] = b
     return torch.cat(a_list + b_list, dim=1)
