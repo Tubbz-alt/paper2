@@ -172,9 +172,9 @@ class Generator(nn.Module):
             self.hpf = HighPass(w_hpf, device)
 
     def forward(self, x, s, masks=None):
-        # print("input x.shape", x.shape)
+        print("input x.shape", x.shape)
         x = self.from_rgb(x)
-        # print("x.shape", x.shape)
+        print("x.shape", x.shape)
         cache = {}
         for block in self.encode:
             if (masks is not None) and (x.size(2) in [32, 64, 128]):
@@ -243,11 +243,11 @@ class Generator_unet(nn.Module):
         for down in self.down_layers:
             x = down(x)
             skip.append(x)
-        # print("x.shape", x.shape)
-        # print("s.shape", s.shape)
+        print("x.shape", x.shape)
+        print("s.shape", s.shape)
 
         x = utils.tile_concat(x, s)
-        # print("x.shape", x.shape)
+        print("x.shape", x.shape)
         # x = self.norm(x, s)
         # x = self.actv(x)
 
@@ -273,7 +273,6 @@ class Generator_wnet(nn.Module):
         self.up_layers = nn.ModuleList()
         self.up2_layers = nn.ModuleList()
         self.deconv = nn.ConvTranspose2d(64, 3, 3, 1, 1)
-        skip_layer = nn.ModuleList()
         self.actv = nn.LeakyReLU(0.2)
         self.norm = AdaIN(style_dim, dim_in)
 
@@ -288,7 +287,6 @@ class Generator_wnet(nn.Module):
                 dim_in = in_c*2
             down = nn.Conv2d(in_c, out_c, 4, 2, 1)
             self.down_layers.append(down)
-            skip_layer.append(down)
 
         # U1 decoder 
         for i in range(repeat_num+1):
@@ -436,7 +434,7 @@ class Discriminator(nn.Module):
 
 def build_model(args):
     # generator = Generator(args.img_size, args.style_dim, w_hpf=args.w_hpf)
-    generator = Generator_unet(args.img_size, args.style_dim, w_hpf=args.w_hpf)
+    generator = Generator_wnet(args.img_size, args.style_dim, w_hpf=args.w_hpf)
     mapping_network = MappingNetwork(args.latent_dim, args.style_dim, args.num_domains)
     style_encoder = StyleEncoder(args.img_size, args.style_dim, args.num_domains)
     discriminator = Discriminator(args.img_size, args.num_domains)
