@@ -266,14 +266,13 @@ class Generator_wnet(nn.Module):
         super().__init__()
         repeat_num = int(np.log2(img_size)) - 3
         dim_in = 64
-        dim_out = max_conv_dim
+        dim_out = 512
         self.img_size = img_size
         self.from_rgb = nn.Conv2d(3, dim_in, 3, 1, 1)  # (in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True, padding_mode='zeros')
         self.down_layers = nn.ModuleList()
         self.up_layers = nn.ModuleList()
         self.up2_layers = nn.ModuleList()
         self.deconv = nn.ConvTranspose2d(64, 3, 3, 1, 1)
-        skip_layer = nn.ModuleList()
         self.actv = nn.LeakyReLU(0.2)
         self.norm = AdaIN(style_dim, dim_in)
 
@@ -281,14 +280,13 @@ class Generator_wnet(nn.Module):
         for i in range(repeat_num):
             in_c = dim_in
             if(in_c*2 > max_conv_dim): 
-                out_c = max_conv_dim 
-                dim_in = max_conv_dim
+                out_c = 512 
+                dim_in = 512
             else: 
                 out_c = in_c*2
                 dim_in = in_c*2
             down = nn.Conv2d(in_c, out_c, 4, 2, 1)
             self.down_layers.append(down)
-            skip_layer.append(down)
 
         # U1 decoder 
         for i in range(repeat_num+1):
@@ -299,14 +297,15 @@ class Generator_wnet(nn.Module):
             elif (i > 2): 
                 out_c = dim_out //2
                 dim_out = dim_out //2
+
             if(i==0):
                 up = nn.ConvTranspose2d(in_c, out_c, 3, 1, 1)
                 up2 = nn.ConvTranspose2d(in_c+style_dim, out_c, 3, 1, 1)
-            else:
+            elif(i>2):
                 up = nn.ConvTranspose2d(in_c*2, out_c, 4, 2, 1)
             self.up_layers.append(up)
             self.up2_layers.append(up2)
-            
+
     def forward(self, x, s, masks=None):
         i = 0 
         skip = []
@@ -316,29 +315,39 @@ class Generator_wnet(nn.Module):
         for down in self.down_layers:
             x = down(x)
             skip.append(x)
+            print("U-en x.shape",x.shape)
+
         for up in self.up_layers:
             x = up(x)
             if(len(skip)-i-1>0):
                 index = len(skip)-i-1
                 x = torch.cat((x,skip[index]), 1)
+                print("U-en x.shape",x.shape)
             i = i+1
+
         x = self.deconv(x)
+        print("center x.shape",x.shape)
 
         # U2 
         skip = []
         for down in self.down_layers:
             x = down(x)
             skip.append(x)
+            print("Ude x.shape",x.shape)
 
         x = utils.tile_concat(x, s)
+        print("x+s x.shape",x.shape)
 
-        for up in self.up_layers:
+        for up in self.up2_layers:
             x = up(x)
             if(len(skip)-i-1>0):
                 index = len(skip)-i-1
                 x = torch.cat((x,skip[index]), 1)
+                print("Ude x.shape",x.shape)
             i = i+1
+
         x = self.deconv(x)
+        print("output x.shape",x.shape)
         return x
 
 class MappingNetwork(nn.Module):
@@ -436,7 +445,7 @@ class Discriminator(nn.Module):
 
 def build_model(args):
     # generator = Generator(args.img_size, args.style_dim, w_hpf=args.w_hpf)
-    generator = Generator_unet(args.img_size, args.style_dim, w_hpf=args.w_hpf)
+    generator = Generator_wnet(args.img_size, args.style_dim, w_hpf=args.w_hpf)
     mapping_network = MappingNetwork(args.latent_dim, args.style_dim, args.num_domains)
     style_encoder = StyleEncoder(args.img_size, args.style_dim, args.num_domains)
     discriminator = Discriminator(args.img_size, args.num_domains)
