@@ -83,8 +83,8 @@ class Solver(nn.Module):
         optims = self.optims
 
         # fetch random validation images for debugging
-        fetcher = InputFetcher(loaders.src, loaders.ref, args.latent_dim, 'train')
-        fetcher_val = InputFetcher(loaders.val, None, args.latent_dim, 'val')
+        fetcher = InputFetcher(loaders.src, loaders.src_skt,  loaders.ref, args.latent_dim, 'train')
+        fetcher_val = InputFetcher(loaders.val, None,  None, args.latent_dim, 'val')
         inputs_val = next(fetcher_val)
 
         # resume training if necessary
@@ -100,6 +100,7 @@ class Solver(nn.Module):
             # fetch images and labels
             inputs = next(fetcher)
             x_real, y_org = inputs.x_src, inputs.y_src
+            xs_real, ys_org = inputs.xs_src, inputs.ys_src
             x_ref, x_ref2, y_trg = inputs.x_ref, inputs.x_ref2, inputs.y_ref
             z_trg, z_trg2 = inputs.z_trg, inputs.z_trg2
 

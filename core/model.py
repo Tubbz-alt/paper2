@@ -200,9 +200,11 @@ class Generator_unet(nn.Module):
         self.img_size = img_size
         self.from_rgb = nn.Conv2d(3, dim_in, 3, 1, 1)  # (in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True, padding_mode='zeros')
         self.down_layers = nn.ModuleList()
+        self.down_norm_layers = nn.ModuleList()
         self.up_layers = nn.ModuleList()
         self.deconv = nn.ConvTranspose2d(64, 3, 3, 1, 1)
         skip_layer = nn.ModuleList()
+        self.norm = nn.InstanceNorm2d(dim_in, affine=True)
         self.actv = nn.LeakyReLU(0.2)
 
         # encoder 
@@ -214,9 +216,11 @@ class Generator_unet(nn.Module):
             else: 
                 out_c = in_c*2
                 dim_in = in_c*2
-            down = nn.Conv2d(in_c, out_c, 4, 2, 1)
-            self.down_layers.append(down)
-            skip_layer.append(down)
+            downnorm = nn.InstanceNorm2d(in_c, affine=True)
+            self.down_norm_layers.append(downnorm)
+            downconv = nn.Conv2d(in_c, out_c, 4, 2, 1)
+            self.down_layers.append(downconv)
+            skip_layer.append(downconv)
 
         # decoder 
         for i in range(repeat_num+1):
@@ -228,7 +232,6 @@ class Generator_unet(nn.Module):
                 out_c = dim_out //2
                 dim_out = dim_out //2
             if(i==0):
-
                 up = nn.ConvTranspose2d(in_c+style_dim, out_c, 3, 1, 1)
             else:
                 up = nn.ConvTranspose2d((in_c*2)+style_dim, out_c, 4, 2, 1)
@@ -241,9 +244,13 @@ class Generator_unet(nn.Module):
         x = self.from_rgb(x)
         skip.append(x)
         for down in self.down_layers:
+            x = self.down_norm_layers[i](x) 
+            x = self.actv(x)
             x = down(x)
             skip.append(x)
+            i = i+1
 
+        i = 0 
         for up in self.up_layers:
             x = utils.tile_concat(x, s)
             x = self.actv(x)

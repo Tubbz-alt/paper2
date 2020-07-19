@@ -45,6 +45,12 @@ def main(args):
                                              batch_size=args.batch_size,
                                              prob=args.randcrop_prob,
                                              num_workers=args.num_workers),
+                        src_skt=get_train_loader(root=args.train_sketch_img_dir,
+                                             which='source',
+                                             img_size=args.img_size,
+                                             batch_size=args.batch_size,
+                                             prob=args.randcrop_prob,
+                                             num_workers=args.num_workers),
                         ref=get_train_loader(root=args.train_img_dir,
                                              which='reference',
                                              img_size=args.img_size,
@@ -145,6 +151,8 @@ if __name__ == '__main__':
     # directory for training
     parser.add_argument('--train_img_dir', type=str, default='data/celeba_hq/train',
                         help='Directory containing training images')
+    parser.add_argument('--train_sketch_img_dir', type=str, default='data/celeba_hq/train',
+                        help='Directory containing training sketch images')
     parser.add_argument('--val_img_dir', type=str, default='data/celeba_hq/val',
                         help='Directory containing validation images')
     parser.add_argument('--sample_dir', type=str, default='expr/samples',

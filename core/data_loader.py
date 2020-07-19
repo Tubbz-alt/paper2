@@ -168,8 +168,9 @@ def get_test_loader(root, img_size=256, batch_size=32,
 
 
 class InputFetcher:
-    def __init__(self, loader, loader_ref=None, latent_dim=16, mode=''):
+    def __init__(self, loader, loader_sketch=None, loader_ref=None, latent_dim=16, mode=''):
         self.loader = loader
+        self.loader_sketch = loader_sketch
         self.loader_ref = loader_ref
         self.latent_dim = latent_dim
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -180,6 +181,14 @@ class InputFetcher:
             x, y = next(self.iter)
         except (AttributeError, StopIteration):
             self.iter = iter(self.loader)
+            x, y = next(self.iter)
+        return x, y
+    
+    def _fetch_inputs_sketch(self):
+        try:
+            x, y = next(self.iter)
+        except (AttributeError, StopIteration):
+            self.iter = iter(self.loader_sketch)
             x, y = next(self.iter)
         return x, y
 
@@ -199,11 +208,12 @@ class InputFetcher:
 
     def __next__(self):
         x, y = self._fetch_inputs()
+        xs, ys = self._fetch_inputs_sketch()
         if self.mode == 'train':
             x_ref, x_ref2, y_ref = self._fetch_refs()
             z_trg = torch.randn(x.size(0), self.latent_dim)
             z_trg2 = torch.randn(x.size(0), self.latent_dim)
-            inputs = Munch(x_src=x, y_src=y, y_ref=y_ref,
+            inputs = Munch(x_src=x, y_src=y, xs_src=xs, ys_src=ys, y_ref=y_ref,
                            x_ref=x_ref, x_ref2=x_ref2,
                            z_trg=z_trg, z_trg2=z_trg2)
         elif self.mode == 'val':
