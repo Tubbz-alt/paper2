@@ -245,8 +245,6 @@ class Generator_unet(nn.Module):
             skip.append(x)
 
         for up in self.up_layers:
-            # x = self.norm(x, s)
-            # x = self.actv(x)
             x = utils.tile_concat(x, s)
             x = self.actv(x)
             x = up(x)

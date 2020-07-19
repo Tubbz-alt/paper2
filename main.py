@@ -174,8 +174,8 @@ if __name__ == '__main__':
 
     # step size
     parser.add_argument('--print_every', type=int, default=10)
-    parser.add_argument('--sample_every', type=int, default=5000)
-    parser.add_argument('--save_every', type=int, default=10000)
+    parser.add_argument('--sample_every', type=int, default=1000)
+    parser.add_argument('--save_every', type=int, default=2000)
     parser.add_argument('--eval_every', type=int, default=50000)
 
     args = parser.parse_args()
