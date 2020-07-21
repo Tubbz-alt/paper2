@@ -1,0 +1,1 @@
+python main.py --mode train --num_domains 3 --train_img_dir C:/Users/wpusomsai/Desktop/Thesis/stargan-v2/data/real --train_sketch_img_dir  C:/Users/wpusomsai/Desktop/Thesis/stargan-v2/data/real --val_img_dir C:/Users/wpusomsai/Desktop/Thesis/stargan-v2/data/real --batch_size 4 
