@@ -1,0 +1,6 @@
+
+python main.py --mode train --num_domains 2 --train_img_dir /mnt/d/works/stargan-v2/data/celeba_hq/train --val_img_dir /mnt/d/works/stargan-v2/data/celeba_hq/train --batch_size 4 
+
+
+
+python main.py --mode train --num_domains 5 --train_img_dir /mnt/c/Users/admin/Desktop/imm/train_new/real --train_sketch_img_dir /mnt/c/Users/admin/Desktop/imm/train_new/sketch --val_img_dir /mnt/c/Users/admin/Desktop/imm/train_new/real --batch_size 4 --sample_every 10
