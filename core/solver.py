@@ -107,21 +107,25 @@ class Solver(nn.Module):
             masks = nets.fan.get_heatmap(x_real) if args.w_hpf > 0 else None
 
             # train the discriminator
+            # d_loss, d_losses_latent = compute_d_loss(
+            #     nets, args, x_real, y_org, y_trg, z_trg=z_trg, masks=masks)
             d_loss, d_losses_latent = compute_d_loss(
-                nets, args, x_real, y_org, y_trg, z_trg=z_trg, masks=masks)
+                nets, args, x_real, xs_real, ys_org, y_trg, z_trg=z_trg, masks=masks)
             self._reset_grad()
             d_loss.backward()
             optims.discriminator.step()
 
+            # d_loss, d_losses_ref = compute_d_loss(
+            #     nets, args, x_real, y_org, y_trg, x_ref=x_ref, masks=masks)
             d_loss, d_losses_ref = compute_d_loss(
-                nets, args, x_real, y_org, y_trg, x_ref=x_ref, masks=masks)
+                nets, args, x_real, xs_real, y_org, y_trg, x_ref=x_ref, masks=masks)
             self._reset_grad()
             d_loss.backward()
             optims.discriminator.step()
 
             # train the generator
             g_loss, g_losses_latent = compute_g_loss(
-                nets, args, x_real, y_org, y_trg, z_trgs=[z_trg, z_trg2], masks=masks)
+                nets, args, x_real, xs_real, ys_org, y_trg, z_trgs=[z_trg, z_trg2], masks=masks)
             self._reset_grad()
             g_loss.backward()
             optims.generator.step()
@@ -129,7 +133,7 @@ class Solver(nn.Module):
             optims.style_encoder.step()
 
             g_loss, g_losses_ref = compute_g_loss(
-                nets, args, x_real, y_org, y_trg, x_refs=[x_ref, x_ref2], masks=masks)
+                nets, args, x_real, xs_real, y_org, y_trg, x_refs=[x_ref, x_ref2], masks=masks)
             self._reset_grad()
             g_loss.backward()
             optims.generator.step()
@@ -199,7 +203,7 @@ class Solver(nn.Module):
         calculate_metrics(nets_ema, args, step=resume_iter, mode='reference')
 
 
-def compute_d_loss(nets, args, x_real, y_org, y_trg, z_trg=None, x_ref=None, masks=None):
+def compute_d_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trg=None, x_ref=None, masks=None):
     assert (z_trg is None) != (x_ref is None)
     # with real images
     x_real.requires_grad_()
@@ -214,7 +218,8 @@ def compute_d_loss(nets, args, x_real, y_org, y_trg, z_trg=None, x_ref=None, mas
         else:  # x_ref is not None
             s_trg = nets.style_encoder(x_ref, y_trg)
 
-        x_fake = nets.generator(x_real, s_trg, masks=masks)
+        # x_fake = nets.generator(x_real, s_trg, masks=masks)
+        x_fake = nets.generator(xs_real, s_trg, masks=masks)
     out = nets.discriminator(x_fake, y_trg)
     loss_fake = adv_loss(out, 0)
 
@@ -224,7 +229,7 @@ def compute_d_loss(nets, args, x_real, y_org, y_trg, z_trg=None, x_ref=None, mas
                        reg=loss_reg.item())
 
 
-def compute_g_loss(nets, args, x_real, y_org, y_trg, z_trgs=None, x_refs=None, masks=None):
+def compute_g_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trgs=None, x_refs=None, masks=None):
     assert (z_trgs is None) != (x_refs is None)
     if z_trgs is not None:
         z_trg, z_trg2 = z_trgs
@@ -237,7 +242,8 @@ def compute_g_loss(nets, args, x_real, y_org, y_trg, z_trgs=None, x_refs=None, m
     else:
         s_trg = nets.style_encoder(x_ref, y_trg)
 
-    x_fake = nets.generator(x_real, s_trg, masks=masks)
+    # x_fake = nets.generator(x_real, s_trg, masks=masks)
+    x_fake = nets.generator(xs_real, s_trg, masks=masks)
     out = nets.discriminator(x_fake, y_trg)
     loss_adv = adv_loss(out, 1)
 
