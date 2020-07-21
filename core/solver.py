@@ -54,8 +54,13 @@ class Solver(nn.Module):
                 CheckpointIO(ospj(args.checkpoint_dir, '{:06d}_nets.ckpt'), **self.nets),
                 CheckpointIO(ospj(args.checkpoint_dir, '{:06d}_nets_ema.ckpt'), **self.nets_ema),
                 CheckpointIO(ospj(args.checkpoint_dir, '{:06d}_optims.ckpt'), **self.optims)]
+            # self.ckptios = [
+                # CheckpointIO(ospj(args.checkpoint_dir, str(self.nets)  + '_nets.ckpt'), **self.nets),
+                # CheckpointIO(ospj(args.checkpoint_dir, str(self.nets_ema)+ '_nets_ema.ckpt'), **self.nets_ema),
+                # CheckpointIO(ospj(args.checkpoint_dir, str(self.optims)+ '_optims.ckpt'), **self.optims)]
         else:
             self.ckptios = [CheckpointIO(ospj(args.checkpoint_dir, '{:06d}_nets_ema.ckpt'), **self.nets_ema)]
+            # self.ckptios = [CheckpointIO(ospj(args.checkpoint_dir, str(self.nets_ema) + '_nets_ema.ckpt'), **self.nets_ema)]
 
         self.to(self.device)
         for name, network in self.named_children():
@@ -105,23 +110,33 @@ class Solver(nn.Module):
             z_trg, z_trg2 = inputs.z_trg, inputs.z_trg2
 
             masks = nets.fan.get_heatmap(x_real) if args.w_hpf > 0 else None
+            # pix2pix 
+            d1_loss = compute_d1_loss(nets, args, x_real,  xs_real, y_org, y_trg, z_trg=z_trg, masks=masks)
+            self._reset_grad()
+            d1_loss.backward()
+            optims.discriminator_pix2pix.step()
+
+            g1_loss = compute_g1_loss(nets, args, x_real,  xs_real, y_org, y_trg, z_trg=z_trg, masks=masks)
+            self._reset_grad()
+            g1_loss.backward()
+            optims.generator_pix2pix.step()
 
             # train the discriminator
             d_loss, d_losses_latent = compute_d_loss(
-                nets, args, x_real, y_org, y_trg, z_trg=z_trg, masks=masks)
+                nets, args, x_real,  xs_real, y_org, y_trg, z_trg=z_trg, masks=masks)
             self._reset_grad()
             d_loss.backward()
             optims.discriminator.step()
 
             d_loss, d_losses_ref = compute_d_loss(
-                nets, args, x_real, y_org, y_trg, x_ref=x_ref, masks=masks)
+                nets, args, x_real, xs_real, y_org, y_trg, x_ref=x_ref, masks=masks)
             self._reset_grad()
             d_loss.backward()
             optims.discriminator.step()
 
             # train the generator
             g_loss, g_losses_latent = compute_g_loss(
-                nets, args, x_real, y_org, y_trg, z_trgs=[z_trg, z_trg2], masks=masks)
+                nets, args, x_real, xs_real, y_org, y_trg, z_trgs=[z_trg, z_trg2], masks=masks)
             self._reset_grad()
             g_loss.backward()
             optims.generator.step()
@@ -129,7 +144,7 @@ class Solver(nn.Module):
             optims.style_encoder.step()
 
             g_loss, g_losses_ref = compute_g_loss(
-                nets, args, x_real, y_org, y_trg, x_refs=[x_ref, x_ref2], masks=masks)
+                nets, args, x_real, xs_real, y_org, y_trg, x_refs=[x_ref, x_ref2], masks=masks)
             self._reset_grad()
             g_loss.backward()
             optims.generator.step()
@@ -199,7 +214,7 @@ class Solver(nn.Module):
         calculate_metrics(nets_ema, args, step=resume_iter, mode='reference')
 
 
-def compute_d_loss(nets, args, x_real, y_org, y_trg, z_trg=None, x_ref=None, masks=None):
+def compute_d_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trg=None, x_ref=None, masks=None):
     assert (z_trg is None) != (x_ref is None)
     # with real images
     x_real.requires_grad_()
@@ -223,8 +238,27 @@ def compute_d_loss(nets, args, x_real, y_org, y_trg, z_trg=None, x_ref=None, mas
                        fake=loss_fake.item(),
                        reg=loss_reg.item())
 
+def compute_g1_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trgs=None, x_refs=None, masks=None):
+    x_fake_color = nets.generator_pix2pix(xs_real)
+    pred_fake = nets.discriminator_pix2pix(x_fake_color)
+    mseloss = nn.MSELoss()
+    loss_G_GAN = mseloss(pred_fake, torch.tensor(1))
+    l1loss = torch.nn.L1Loss()
+    loss_G_L1 = l1loss(pred_fake, x_real)*100
+    loss_G = loss_G_GAN + loss_G_L1
+    return loss_G
 
-def compute_g_loss(nets, args, x_real, y_org, y_trg, z_trgs=None, x_refs=None, masks=None):
+def compute_d1_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trgs=None, x_refs=None, masks=None):
+    x_fake_color = nets.generator_pix2pix(xs_real)
+    pred_fake = nets.discriminator_pix2pix(x_fake_color)
+    pred_real = nets.discriminator_pix2pix(x_real)
+    mseloss = nn.MSELoss()
+    loss_D_fake = mseloss(pred_fake, torch.tensor(0))
+    loss_D_real = mseloss(pred_real, torch.tensor(1))
+    loss_D = (loss_D_fake + loss_D_real) * 0.5
+    return loss_D
+
+def compute_g_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trgs=None, x_refs=None, masks=None):
     assert (z_trgs is None) != (x_refs is None)
     if z_trgs is not None:
         z_trg, z_trg2 = z_trgs
