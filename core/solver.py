@@ -86,6 +86,7 @@ class Solver(nn.Module):
         nets = self.nets
         nets_ema = self.nets_ema
         optims = self.optims
+        device = self.device
 
         # fetch random validation images for debugging
         fetcher = InputFetcher(loaders.src, loaders.src_skt,  loaders.ref, args.latent_dim, 'train')
@@ -111,12 +112,12 @@ class Solver(nn.Module):
 
             masks = nets.fan.get_heatmap(x_real) if args.w_hpf > 0 else None
             # pix2pix 
-            d1_loss = compute_d1_loss(nets, args, x_real,  xs_real, y_org, y_trg, z_trg=z_trg, masks=masks)
+            d1_loss = compute_d1_loss(nets, args, x_real, xs_real)
             self._reset_grad()
             d1_loss.backward()
             optims.discriminator_pix2pix.step()
 
-            g1_loss = compute_g1_loss(nets, args, x_real,  xs_real, y_org, y_trg, z_trg=z_trg, masks=masks)
+            g1_loss = compute_g1_loss(nets, args, x_real, xs_real)
             self._reset_grad()
             g1_loss.backward()
             optims.generator_pix2pix.step()
@@ -227,6 +228,7 @@ def compute_d_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trg=None, x_ref=
     loss_reg = r1_reg(out, x_real)
 
     # with fake images
+    x_fake_color = nets.generator_pix2pix(xs_real)
     with torch.no_grad():
         if z_trg is not None:
             s_trg = nets.mapping_network(z_trg, y_trg)
@@ -234,7 +236,7 @@ def compute_d_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trg=None, x_ref=
             s_trg = nets.style_encoder(x_ref, y_trg)
 
         # x_fake = nets.generator(x_real, s_trg, masks=masks)
-        x_fake = nets.generator(xs_real, s_trg, masks=masks)
+        x_fake = nets.generator(x_fake_color, s_trg, masks=masks)
     out = nets.discriminator(x_fake, y_trg)
     loss_fake = adv_loss(out, 0)
 
@@ -243,23 +245,25 @@ def compute_d_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trg=None, x_ref=
                        fake=loss_fake.item(),
                        reg=loss_reg.item())
 
-def compute_g1_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trgs=None, x_refs=None, masks=None):
+def compute_g1_loss(nets, args, x_real, xs_real):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     x_fake_color = nets.generator_pix2pix(xs_real)
     pred_fake = nets.discriminator_pix2pix(x_fake_color)
     mseloss = nn.MSELoss()
-    loss_G_GAN = mseloss(pred_fake, torch.tensor(1))
+    loss_G_GAN = mseloss(pred_fake, torch.tensor(1.0).expand_as(pred_fake).to(device))
     l1loss = torch.nn.L1Loss()
-    loss_G_L1 = l1loss(pred_fake, x_real)*100
+    loss_G_L1 = l1loss(x_fake_color, x_real)*100
     loss_G = loss_G_GAN + loss_G_L1
     return loss_G
 
-def compute_d1_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trgs=None, x_refs=None, masks=None):
+def compute_d1_loss(nets, args, x_real, xs_real):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    mseloss = nn.MSELoss()
     x_fake_color = nets.generator_pix2pix(xs_real)
     pred_fake = nets.discriminator_pix2pix(x_fake_color)
     pred_real = nets.discriminator_pix2pix(x_real)
-    mseloss = nn.MSELoss()
-    loss_D_fake = mseloss(pred_fake, torch.tensor(0))
-    loss_D_real = mseloss(pred_real, torch.tensor(1))
+    loss_D_fake = mseloss(pred_fake, torch.tensor(0.0).expand_as(pred_fake).to(device))
+    loss_D_real = mseloss(pred_real, torch.tensor(1.0).expand_as(pred_real).to(device))
     loss_D = (loss_D_fake + loss_D_real) * 0.5
     return loss_D
 
@@ -276,8 +280,9 @@ def compute_g_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trgs=None, x_ref
     else:
         s_trg = nets.style_encoder(x_ref, y_trg)
 
+    x_fake_color = nets.generator_pix2pix(xs_real)
     # x_fake = nets.generator(x_real, s_trg, masks=masks)
-    x_fake = nets.generator(xs_real, s_trg, masks=masks)
+    x_fake = nets.generator(x_fake_color, s_trg, masks=masks)
     out = nets.discriminator(x_fake, y_trg)
     loss_adv = adv_loss(out, 1)
 
