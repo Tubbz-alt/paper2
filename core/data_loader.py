@@ -219,6 +219,7 @@ class InputFetcher:
         elif self.mode == 'val':
             x_ref, y_ref = self._fetch_inputs()
             inputs = Munch(x_src=x, y_src=y,
+                           xs_src=xs, ys_src=ys,
                            x_ref=x_ref, y_ref=y_ref)
         elif self.mode == 'test':
             inputs = Munch(x=x, y=y)

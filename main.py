@@ -136,7 +136,7 @@ if __name__ == '__main__':
                         help='Decay rate for 2nd moment of Adam')
     parser.add_argument('--weight_decay', type=float, default=1e-4,
                         help='Weight decay for optimizer')
-    parser.add_argument('--num_outs_per_domain', type=int, default=10,
+    parser.add_argument('--num_outs_per_domain', type=int, default=2,
                         help='Number of generated images per domain during sampling')
 
     # misc
@@ -182,9 +182,9 @@ if __name__ == '__main__':
 
     # step size
     parser.add_argument('--print_every', type=int, default=10)
-    parser.add_argument('--sample_every', type=int, default=1000)
-    parser.add_argument('--save_every', type=int, default=2000)
-    parser.add_argument('--eval_every', type=int, default=50000)
+    parser.add_argument('--sample_every', type=int, default=500)
+    parser.add_argument('--save_every', type=int, default=500)
+    parser.add_argument('--eval_every', type=int, default=500)
 
     args = parser.parse_args()
     main(args)

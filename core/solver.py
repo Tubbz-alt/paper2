@@ -90,7 +90,7 @@ class Solver(nn.Module):
 
         # fetch random validation images for debugging
         fetcher = InputFetcher(loaders.src, loaders.src_skt,  loaders.ref, args.latent_dim, 'train')
-        fetcher_val = InputFetcher(loaders.val, None,  None, args.latent_dim, 'val')
+        fetcher_val = InputFetcher(loaders.val, loaders.src_skt, None, args.latent_dim, 'val')
         inputs_val = next(fetcher_val)
 
         # resume training if necessary
@@ -148,13 +148,13 @@ class Solver(nn.Module):
             optims.mapping_network.step()
             optims.style_encoder.step()
 
-            g_loss, g_losses_sketch_ref = compute_g_loss(
-                nets, args, x_real, xs_real, y_org, y_trg, x_refs=[x_ref, x_ref2], masks=masks)
-            self._reset_grad()
-            g_loss.backward()
-            optims.generator.step()
-            optims.mapping_network.step()
-            optims.style_encoder.step()
+            # g_loss, g_losses_sketch_ref = compute_g_loss(
+            #     nets, args, x_real, xs_real, y_org, y_trg, x_refs=[x_ref, x_ref2], masks=masks)
+            # self._reset_grad()
+            # g_loss.backward()
+            # optims.generator.step()
+            # optims.mapping_network.step()
+            # optims.style_encoder.step()
 
             g_loss, g_losses_ref = compute_g_loss(
                 nets, args, x_real, xs_real, y_org, y_trg, x_refs=[x_ref, x_ref2], masks=masks)
@@ -248,10 +248,10 @@ def compute_d_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trg=None, x_ref=
     out = nets.discriminator(x_fake, y_trg)
     loss_fake = adv_loss(out, 0)
 
-    # ## added loss for x_cycle
-    # x_cycle = nets.generator(x_fake, s_trg, masks=masks)
-    # out = nets.discriminator(x_cycle, y_org)
-    # loss_real = (loss_real + adv_loss(out, 1)) // 2
+    ## added loss for x_cycle
+    x_cycle = nets.generator(x_fake, s_trg, masks=masks)
+    out = nets.discriminator(x_cycle, y_org)
+    loss_real = (loss_real + adv_loss(out, 1)) // 2
 
     loss = loss_real + loss_fake + args.lambda_reg * loss_reg
     return loss, Munch(real=loss_real.item(),
