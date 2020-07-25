@@ -140,16 +140,16 @@ class Solver(nn.Module):
             optims.discriminator.step()
 
             # train the generator
-            g_loss, g_losses_sketch_ref = compute_g_loss(
-                nets, args, x_real, xs_real, y_org, y_trg, x_refs=[x_ref, x_ref2], masks=masks)
+            g_loss, g_losses_latent = compute_g_loss(
+                nets, args, x_real, xs_real, y_org, y_trg, z_trgs=[z_trg, z_trg2], masks=masks)
             self._reset_grad()
             g_loss.backward()
             optims.generator.step()
             optims.mapping_network.step()
             optims.style_encoder.step()
 
-            g_loss, g_losses_latent = compute_g_loss(
-                nets, args, x_real, xs_real, y_org, y_trg, z_trgs=[z_trg, z_trg2], masks=masks)
+            g_loss, g_losses_sketch_ref = compute_g_loss(
+                nets, args, x_real, xs_real, y_org, y_trg, x_refs=[x_ref, x_ref2], masks=masks)
             self._reset_grad()
             g_loss.backward()
             optims.generator.step()
@@ -248,6 +248,11 @@ def compute_d_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trg=None, x_ref=
     out = nets.discriminator(x_fake, y_trg)
     loss_fake = adv_loss(out, 0)
 
+    # ## added loss for x_cycle
+    # x_cycle = nets.generator(x_fake, s_trg, masks=masks)
+    # out = nets.discriminator(x_cycle, y_org)
+    # loss_real = (loss_real + adv_loss(out, 1)) // 2
+
     loss = loss_real + loss_fake + args.lambda_reg * loss_reg
     return loss, Munch(real=loss_real.item(),
                        fake=loss_fake.item(),
@@ -313,8 +318,7 @@ def compute_g_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trgs=None, x_ref
     x_rec = nets.generator(x_fake, s_org, masks=masks)
     loss_cyc = torch.mean(torch.abs(x_rec - x_real))
 
-    loss = loss_adv + args.lambda_sty * loss_sty \
-        - args.lambda_ds * loss_ds + args.lambda_cyc * loss_cyc
+    loss = loss_adv + args.lambda_sty * loss_sty - args.lambda_ds * loss_ds + args.lambda_cyc * loss_cyc
     return loss, Munch(adv=loss_adv.item(),
                        sty=loss_sty.item(),
                        ds=loss_ds.item(),
