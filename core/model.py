@@ -456,7 +456,7 @@ class Generator_wnet(nn.Module):
         for down in self.down_layers:
             x = down(x)
             skip2.append(x) 
-
+            
         x = utils.tile_concat(x, s)
 
         for up in self.up2_layers:

@@ -10,6 +10,7 @@ Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 
 import os
 import argparse
+import csv
 
 from munch import Munch
 from torch.backends import cudnn
@@ -35,6 +36,14 @@ def main(args):
     torch.manual_seed(args.seed)
 
     solver = Solver(args)
+
+    #create csv file
+    with open(args.loss_csv_path, 'wb') as csvfile:
+        filewriter = csv.writer(csvfile, delimiter=',',quotechar='|', quoting=csv.QUOTE_MINIMAL)
+
+    with open(args.loss_csv_path, 'a') as file:
+          writer = csv.writer(file)
+          writer.writerow(["epoch", "d_loss_z_trg", "d_loss_x_ref", "g_loss_z_trg", "g_loss_x_ref"])
 
     if args.mode == 'train':
         assert len(subdirs(args.train_img_dir)) == args.num_domains
@@ -124,7 +133,7 @@ if __name__ == '__main__':
                         help='Iterations to resume training/testing')
     parser.add_argument('--batch_size', type=int, default=8,
                         help='Batch size for training')
-    parser.add_argument('--val_batch_size', type=int, default=32,
+    parser.add_argument('--val_batch_size', type=int, default=4,
                         help='Batch size for validation')
     parser.add_argument('--lr', type=float, default=1e-4,
                         help='Learning rate for D, E and G')
@@ -184,7 +193,10 @@ if __name__ == '__main__':
     parser.add_argument('--print_every', type=int, default=10)
     parser.add_argument('--sample_every', type=int, default=500)
     parser.add_argument('--save_every', type=int, default=500)
-    parser.add_argument('--eval_every', type=int, default=500)
+    parser.add_argument('--eval_every', type=int, default=2000)
+
+    # csv file 
+    parser.add_argument('--loss_csv_path', type=str, default='expr/loss_value.csv')
 
     args = parser.parse_args()
     main(args)

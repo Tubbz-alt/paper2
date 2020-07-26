@@ -72,11 +72,10 @@ def translate_and_reconstruct(nets, args, x_src, xs_src, y_src, x_ref, y_ref, fi
     x_rec = nets.generator(x_fake, s_src, masks=masks)
     xs_rec_fake = nets.generator(xs_fake, s_src, masks=masks)
 
-    x_concat = [x_src, x_ref,  x_fake, x_rec, xs_src, xs_fake, xs_rec_fake]
+    x_concat = [x_src, x_ref,  x_fake, x_rec , xs_src, xs_fake, xs_rec_fake]
     x_concat = torch.cat(x_concat, dim=0)
     save_image(x_concat, N, filename)
     del x_concat
-
 
 @torch.no_grad()
 def translate_using_latent(nets, args, x_src, xs_real, y_trg_list, z_trg_list, psi, filename):
@@ -106,7 +105,7 @@ def translate_using_latent(nets, args, x_src, xs_real, y_trg_list, z_trg_list, p
 def translate_using_reference(nets, args, x_src, xs_real, x_ref, y_ref, filename):
     N, C, H, W = x_src.size()
     wb = torch.ones(1, C, H, W).to(x_src.device)
-    x_src_with_wb = torch.cat([wb, x_src], dim=0)
+    x_src_with_wb = torch.cat([wb, xs_real], dim=0)
 
     masks = nets.fan.get_heatmap(x_src) if args.w_hpf > 0 else None
     s_ref = nets.style_encoder(x_ref, y_ref)
@@ -121,31 +120,36 @@ def translate_using_reference(nets, args, x_src, xs_real, x_ref, y_ref, filename
     save_image(x_concat, N+1, filename)
     del x_concat
 
+@torch.no_grad()
+def debug_input_image(nets, args, x_src, xs_src, step):
+    filename = ospj(args.sample_dir, '%06d_input.jpg' % (step))
+    printNextInputandSketch(nets, x_src, xs_src, filename)
+
 
 @torch.no_grad()
 def debug_image(nets, args, inputs, step):
     x_src, y_src = inputs.x_src, inputs.y_src
     x_ref, y_ref = inputs.x_ref, inputs.y_ref
-    xs_real, ys_src = inputs.xs_src, inputs.ys_src
+    xs_src, ys_src = inputs.xs_src, inputs.ys_src
 
     device = inputs.x_src.device
     N = inputs.x_src.size(0)
 
     # translate and reconstruct (reference-guided)
     filename = ospj(args.sample_dir, '%06d_cycle_consistency.jpg' % (step))
-    translate_and_reconstruct(nets, args, x_src, xs_real, y_src, x_ref, y_ref, filename)
+    translate_and_reconstruct(nets, args, x_src, xs_src, y_src, x_ref, y_ref, filename)
 
     # latent-guided image synthesis
-    y_trg_list = [torch.tensor(y).repeat(N).to(device)
-                  for y in range(min(args.num_domains, 5))]
-    z_trg_list = torch.randn(args.num_outs_per_domain, 1, args.latent_dim).repeat(1, N, 1).to(device)
+    # y_trg_list = [torch.tensor(y).repeat(N).to(device)
+    #               for y in range(min(args.num_domains, 5))]
+    # z_trg_list = torch.randn(args.num_outs_per_domain, 1, args.latent_dim).repeat(1, N, 1).to(device)
     # for psi in [0.5, 0.7, 1.0]:
     #     filename = ospj(args.sample_dir, '%06d_latent_psi_%.1f.jpg' % (step, psi))
     #     translate_using_latent(nets, args, x_src, xs_real, y_trg_list, z_trg_list, psi, filename)
 
     # reference-guided image synthesis
     filename = ospj(args.sample_dir, '%06d_reference.jpg' % (step))
-    translate_using_reference(nets, args, x_src, xs_real, x_ref, y_ref, filename)
+    translate_using_reference(nets, args, x_src, xs_src, x_ref, y_ref, filename)
 
 
 # ======================= #
@@ -291,9 +295,10 @@ def tile_concat(a_list, b_list=[]):
     b_list = list(b_list) if isinstance(b_list, (list, tuple)) else [b_list]
     for i, b in enumerate(b_list):
         # print("b.shape",b.shape)
-        b = torch.reshape(b, [-1, b.shape[-1],1, 1])
+        b = torch.reshape(b, [-1, b.shape[-1] , 1, 1])
         # print("b.shape",b.shape)
-        b = b.repeat([1, 1, a_list[0].shape[2], a_list[0].shape[3]])
+        b = b.repeat([1, 1,  a_list[0].shape[2], a_list[0].shape[3]])
         # print("b.shape",b.shape)
         b_list[i] = b
+    # print(len(a_list), len(b_list))
     return torch.cat(a_list + b_list, dim=1)

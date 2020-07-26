@@ -18,6 +18,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import csv
+
 from core.model import build_model
 from core.checkpoint import CheckpointIO
 from core.data_loader import InputFetcher
@@ -72,6 +74,14 @@ class Solver(nn.Module):
     def _save_checkpoint(self, step):
         for ckptio in self.ckptios:
             ckptio.save(step)
+    
+    def _save_loss_value(self, file_path,  d_loss_z_trg, d_loss_x_ref, g_loss_z_trg, g_loss_x_ref, step):
+        file_path = os.path.join(file_path)
+        # print(type(d_loss_z_trg), type(d_loss_x_ref), type(g_loss_z_trg), type(g_loss_x_ref))
+        # print(d_loss_z_trg.item(), d_loss_x_ref.item(), g_loss_z_trg.item(), g_loss_x_ref.item())
+        with open(file_path, 'a') as file:
+          writer = csv.writer(file)
+          writer.writerow([step , d_loss_z_trg.item(), d_loss_x_ref.item() , g_loss_z_trg.item(), g_loss_x_ref.item()])
 
     def _load_checkpoint(self, step):
         for ckptio in self.ckptios:
@@ -125,42 +135,36 @@ class Solver(nn.Module):
             # train the discriminator
             # d_loss, d_losses_latent = compute_d_loss(
             #     nets, args, x_real, y_org, y_trg, z_trg=z_trg, masks=masks)
-            d_loss, d_losses_latent = compute_d_loss(
+            d_loss_z_trg, d_losses_latent = compute_d_loss(
                 nets, args, x_real, xs_real, y_org, y_trg, z_trg=z_trg, masks=masks)
             self._reset_grad()
-            d_loss.backward()
+            d_loss_z_trg.backward()
             optims.discriminator.step()
 
             # d_loss, d_losses_ref = compute_d_loss(
             #     nets, args, x_real, y_org, y_trg, x_ref=x_ref, masks=masks)
-            d_loss, d_losses_ref = compute_d_loss(
+            d_loss_x_ref, d_losses_ref = compute_d_loss(
                 nets, args, x_real, xs_real, y_org, y_trg, x_ref=x_ref, masks=masks)
             self._reset_grad()
-            d_loss.backward()
+            d_loss_x_ref.backward()
             optims.discriminator.step()
 
             # train the generator
-            g_loss, g_losses_latent = compute_g_loss(
+            g_loss_z_trg, g_losses_latent = compute_g_loss(
                 nets, args, x_real, xs_real, y_org, y_trg, z_trgs=[z_trg, z_trg2], masks=masks)
             self._reset_grad()
-            g_loss.backward()
+            g_loss_z_trg.backward()
             optims.generator.step()
             optims.mapping_network.step()
             optims.style_encoder.step()
 
-            g_loss, g_losses_sketch_ref = compute_g_loss(
+            g_loss_x_ref, g_losses_ref = compute_g_loss(
                 nets, args, x_real, xs_real, y_org, y_trg, x_refs=[x_ref, x_ref2], masks=masks)
             self._reset_grad()
-            g_loss.backward()
+            g_loss_x_ref.backward()
             optims.generator.step()
             optims.mapping_network.step()
             optims.style_encoder.step()
-
-            g_loss, g_losses_ref = compute_g_loss(
-                nets, args, x_real, xs_real, y_org, y_trg, x_refs=[x_ref, x_ref2], masks=masks)
-            self._reset_grad()
-            g_loss.backward()
-            optims.generator.step()
 
             # compute moving average of network parameters
             moving_average(nets.generator, nets_ema.generator, beta=0.999)
@@ -177,8 +181,8 @@ class Solver(nn.Module):
                 elapsed = str(datetime.timedelta(seconds=elapsed))[:-7]
                 log = "Elapsed time [%s], Iteration [%i/%i], " % (elapsed, i+1, args.total_iters)
                 all_losses = dict()
-                for loss, prefix in zip([d_losses_latent, d_losses_ref, g_losses_latent, g_losses_ref, g_losses_sketch_ref],
-                                        ['D/latent_', 'D/ref_', 'G/latent_', 'G/ref_', 'G/sketch_ref']):
+                for loss, prefix in zip([d_losses_latent, d_losses_ref, g_losses_latent, g_losses_ref],
+                                        ['D/latent_', 'D/ref_', 'G/latent_', 'G/ref_']):
                     for key, value in loss.items():
                         all_losses[prefix + key] = value
                 all_losses['G/lambda_ds'] = args.lambda_ds
@@ -189,11 +193,12 @@ class Solver(nn.Module):
             if (i+1) % args.sample_every == 0:
                 os.makedirs(args.sample_dir, exist_ok=True)
                 utils.debug_image(nets_ema, args, inputs=inputs_val, step=i+1)
-                utils.debug_input_image(nets_ema,args, x_real, xs_real, step=i+1)
+                # self._save_loss_value(args.loss_csv_path, d_loss_z_trg, d_loss_x_ref, g_loss_z_trg, g_loss_x_ref, step=i+1)
 
             # save model checkpoints
             if (i+1) % args.save_every == 0:
                 self._save_checkpoint(step=i+1)
+                self._save_loss_value(args.loss_csv_path, d_loss_z_trg, d_loss_x_ref, g_loss_z_trg, g_loss_x_ref, step=i+1)
 
             # compute FID and LPIPS if necessary
             if (i+1) % args.eval_every == 0:

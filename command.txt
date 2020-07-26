@@ -5,3 +5,5 @@ python main.py --mode train --num_domains 2 --train_img_dir /mnt/d/works/stargan
 
 python main.py --mode train --num_domains 5 --train_img_dir /mnt/c/Users/admin/Desktop/imm/train_new/real --train_sketch_img_dir /mnt/c/Users/admin/Desktop/imm/train_new/sketch --val_img_dir /mnt/c/Users/admin/Desktop/imm/train_new/real --batch_size 4 --sample_every 10
 python main.py --mode train --num_domains 9 --train_img_dir /mnt/d/works/dataset/train_50/real --train_sketch_img_dir /mnt/d/works/dataset/train_50/sketch --val_img_dir /mnt/d/works/dataset/train_50/real --batch_size 4 --sample_every 500
+
+python main.py --mode train --num_domains 8 --train_img_dir /mnt/d/works/dataset/train_50/real --train_sketch_img_dir /mnt/d/works/dataset/train_50/sketch --val_img_dir /mnt/d/works/dataset/val_50/sketch --batch_size 4 --sample_every 500 

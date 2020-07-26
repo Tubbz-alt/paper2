@@ -186,11 +186,11 @@ class InputFetcher:
     
     def _fetch_inputs_sketch(self):
         try:
-            x, y = next(self.iter)
+            xs, ys = next(self.iter_sketch)
         except (AttributeError, StopIteration):
-            self.iter = iter(self.loader_sketch)
-            x, y = next(self.iter)
-        return x, y
+            self.iter_sketch = iter(self.loader_sketch)
+            xs, ys = next(self.iter_sketch)
+        return xs, ys
 
     def _fetch_refs(self):
         try:
