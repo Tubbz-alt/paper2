@@ -148,13 +148,13 @@ class Solver(nn.Module):
             optims.mapping_network.step()
             optims.style_encoder.step()
 
-            # g_loss, g_losses_sketch_ref = compute_g_loss(
-            #     nets, args, x_real, xs_real, y_org, y_trg, x_refs=[x_ref, x_ref2], masks=masks)
-            # self._reset_grad()
-            # g_loss.backward()
-            # optims.generator.step()
-            # optims.mapping_network.step()
-            # optims.style_encoder.step()
+            g_loss, g_losses_sketch_ref = compute_g_loss(
+                nets, args, x_real, xs_real, y_org, y_trg, x_refs=[x_ref, x_ref2], masks=masks)
+            self._reset_grad()
+            g_loss.backward()
+            optims.generator.step()
+            optims.mapping_network.step()
+            optims.style_encoder.step()
 
             g_loss, g_losses_ref = compute_g_loss(
                 nets, args, x_real, xs_real, y_org, y_trg, x_refs=[x_ref, x_ref2], masks=masks)
@@ -189,6 +189,7 @@ class Solver(nn.Module):
             if (i+1) % args.sample_every == 0:
                 os.makedirs(args.sample_dir, exist_ok=True)
                 utils.debug_image(nets_ema, args, inputs=inputs_val, step=i+1)
+                utils.debug_input_image(nets_ema,args, x_real, xs_real, step=i+1)
 
             # save model checkpoints
             if (i+1) % args.save_every == 0:
@@ -249,9 +250,9 @@ def compute_d_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trg=None, x_ref=
     loss_fake = adv_loss(out, 0)
 
     ## added loss for x_cycle
-    x_cycle = nets.generator(x_fake, s_trg, masks=masks)
-    out = nets.discriminator(x_cycle, y_org)
-    loss_real = (loss_real + adv_loss(out, 1)) // 2
+    # x_cycle = nets.generator(x_fake, s_trg, masks=masks)
+    # out = nets.discriminator(x_cycle, y_org)
+    # loss_real = (loss_real + adv_loss(out, 1)) // 2
 
     loss = loss_real + loss_fake + args.lambda_reg * loss_reg
     return loss, Munch(real=loss_real.item(),
