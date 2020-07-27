@@ -212,16 +212,18 @@ class Solver(nn.Module):
         os.makedirs(args.result_dir, exist_ok=True)
         self._load_checkpoint(args.resume_iter)
 
-        src = next(InputFetcher(loaders.src, None, args.latent_dim, 'test'))
-        ref = next(InputFetcher(loaders.ref, None, args.latent_dim, 'test'))
+        src = InputFetcher(loaders.src, None, None, args.latent_dim, 'test')
+        ref = InputFetcher(loaders.ref, None, None, args.latent_dim, 'test')
+        for i in range(10):
+            src_next = next(src)
+            ref_next = next(ref)
+            fname = ospj(args.result_dir, str(i) + '_reference.jpg')
+            print('Working on {}...'.format(fname))
+            utils.translate_using_reference(nets_ema, args, src_next.x, src_next.x, ref_next.x, ref_next.y, fname)
 
-        fname = ospj(args.result_dir, 'reference.jpg')
-        print('Working on {}...'.format(fname))
-        utils.translate_using_reference(nets_ema, args, src.x, ref.x, ref.y, fname)
-
-        fname = ospj(args.result_dir, 'video_ref.mp4')
-        print('Working on {}...'.format(fname))
-        utils.video_ref(nets_ema, args, src.x, ref.x, ref.y, fname)
+        # fname = ospj(args.result_dir, 'video_ref.mp4')
+        # print('Working on {}...'.format(fname))
+        # utils.video_ref(nets_ema, args, src.x, ref.x, ref.y, fname)
 
     @torch.no_grad()
     def evaluate(self):
@@ -254,7 +256,7 @@ def compute_d_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trg=None, x_ref=
     out = nets.discriminator(x_fake, y_trg)
     loss_fake = adv_loss(out, 0)
 
-    ## added loss for x_cycle
+    # added loss for x_cycle
     # x_cycle = nets.generator(x_fake, s_trg, masks=masks)
     # out = nets.discriminator(x_cycle, y_org)
     # loss_real = (loss_real + adv_loss(out, 1)) // 2
@@ -318,13 +320,22 @@ def compute_g_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trgs=None, x_ref
     x_fake2 = x_fake2.detach()
     loss_ds = torch.mean(torch.abs(x_fake - x_fake2))
 
+    # image reconstruction loss
+    if z_trgs is not None:
+        s_trg = nets.mapping_network(z_trg, y_org)
+    else:
+        s_trg = nets.style_encoder(x_ref, y_org)
+    
+    x_fake = nets.generator(xs_real, s_trg, masks=masks)
+    loss_rec = torch.mean(torch.abs(x_fake - x_real))
+
     # cycle-consistency loss
     masks = nets.fan.get_heatmap(x_fake) if args.w_hpf > 0 else None
     s_org = nets.style_encoder(x_real, y_org)
     x_rec = nets.generator(x_fake, s_org, masks=masks)
     loss_cyc = torch.mean(torch.abs(x_rec - x_real))
 
-    loss = loss_adv + args.lambda_sty * loss_sty - args.lambda_ds * loss_ds + args.lambda_cyc * loss_cyc
+    loss = loss_adv + args.lambda_sty * loss_sty - args.lambda_ds * loss_ds + args.lambda_cyc * loss_cyc + loss_rec
     return loss, Munch(adv=loss_adv.item(),
                        sty=loss_sty.item(),
                        ds=loss_ds.item(),
