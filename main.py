@@ -78,12 +78,12 @@ def main(args):
         loaders = Munch(src=get_test_loader(root=args.src_dir,
                                             img_size=args.img_size,
                                             batch_size=args.val_batch_size,
-                                            shuffle=False,
+                                            shuffle=True,
                                             num_workers=args.num_workers),
                         ref=get_test_loader(root=args.ref_dir,
                                             img_size=args.img_size,
                                             batch_size=args.val_batch_size,
-                                            shuffle=False,
+                                            shuffle=True,
                                             num_workers=args.num_workers))
         solver.sample(loaders)
     elif args.mode == 'eval':

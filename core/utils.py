@@ -102,7 +102,7 @@ def translate_using_latent(nets, args, x_src, xs_real, y_trg_list, z_trg_list, p
 
 
 @torch.no_grad()
-def translate_using_reference(nets, args, x_src, xs_real, x_ref, y_ref, filename):
+def translate_using_reference(nets, args,x_src, xs_real, x_ref, y_ref, filename):
     N, C, H, W = x_src.size()
     wb = torch.ones(1, C, H, W).to(x_src.device)
     x_src_with_wb = torch.cat([wb, xs_real], dim=0)

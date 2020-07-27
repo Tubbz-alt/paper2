@@ -208,8 +208,8 @@ class InputFetcher:
 
     def __next__(self):
         x, y = self._fetch_inputs()
-        xs, ys = self._fetch_inputs_sketch()
         if self.mode == 'train':
+            xs, ys = self._fetch_inputs_sketch()
             x_ref, x_ref2, y_ref = self._fetch_refs()
             z_trg = torch.randn(x.size(0), self.latent_dim)
             z_trg2 = torch.randn(x.size(0), self.latent_dim)
@@ -217,6 +217,7 @@ class InputFetcher:
                            x_ref=x_ref, x_ref2=x_ref2,
                            z_trg=z_trg, z_trg2=z_trg2)
         elif self.mode == 'val':
+            xs, ys = self._fetch_inputs_sketch()
             x_ref, y_ref = self._fetch_inputs()
             inputs = Munch(x_src=x, y_src=y,
                            xs_src=xs, ys_src=ys,

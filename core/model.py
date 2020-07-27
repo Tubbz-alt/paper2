@@ -666,8 +666,8 @@ class GANLoss(nn.Module):
         return loss
 def build_model(args):
     # generator = Generator(args.img_size, args.style_dim, w_hpf=args.w_hpf)
-    generator_pix2pix = Generator_pix2pix_unet(3, 3, 7, 64, norm_layer=nn.BatchNorm2d, use_dropout=False)
-    discriminator_pix2pix = Discriminator_pix2pix(3, 64, 3, norm_layer=nn.BatchNorm2d)
+    # generator_pix2pix = Generator_pix2pix_unet(3, 3, 7, 64, norm_layer=nn.BatchNorm2d, use_dropout=False)
+    # discriminator_pix2pix = Discriminator_pix2pix(3, 64, 3, norm_layer=nn.BatchNorm2d)
     generator = Generator_unet(args.img_size, args.style_dim, w_hpf=args.w_hpf)
     mapping_network = MappingNetwork(args.latent_dim, args.style_dim, args.num_domains)
     style_encoder = StyleEncoder(args.img_size, args.style_dim, args.num_domains)
@@ -679,9 +679,7 @@ def build_model(args):
     nets = Munch(generator=generator,
                  mapping_network=mapping_network,
                  style_encoder=style_encoder,
-                 discriminator=discriminator,
-                 generator_pix2pix=generator_pix2pix,
-                 discriminator_pix2pix=discriminator_pix2pix)
+                 discriminator=discriminator)
     nets_ema = Munch(generator=generator_ema,
                      mapping_network=mapping_network_ema,
                      style_encoder=style_encoder_ema)
