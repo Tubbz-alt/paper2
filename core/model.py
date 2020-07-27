@@ -668,7 +668,7 @@ def build_model(args):
     # generator = Generator(args.img_size, args.style_dim, w_hpf=args.w_hpf)
     # generator_pix2pix = Generator_pix2pix_unet(3, 3, 7, 64, norm_layer=nn.BatchNorm2d, use_dropout=False)
     # discriminator_pix2pix = Discriminator_pix2pix(3, 64, 3, norm_layer=nn.BatchNorm2d)
-    generator = Generator_unet(args.img_size, args.style_dim, w_hpf=args.w_hpf)
+    generator = Generator(args.img_size, args.style_dim, w_hpf=args.w_hpf)
     mapping_network = MappingNetwork(args.latent_dim, args.style_dim, args.num_domains)
     style_encoder = StyleEncoder(args.img_size, args.style_dim, args.num_domains)
     discriminator = Discriminator(args.img_size, args.num_domains)
