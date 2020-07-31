@@ -74,16 +74,22 @@ def main(args):
         solver.train(loaders)
     elif args.mode == 'sample':
         assert len(subdirs(args.src_dir)) == args.num_domains
+        assert len(subdirs(args.src_skt_dir)) == args.num_domains
         assert len(subdirs(args.ref_dir)) == args.num_domains
         loaders = Munch(src=get_test_loader(root=args.src_dir,
                                             img_size=args.img_size,
                                             batch_size=args.val_batch_size,
-                                            shuffle=True,
+                                            shuffle=False,
+                                            num_workers=args.num_workers),
+                        src_skt=get_test_loader(root=args.src_skt_dir,
+                                            img_size=args.img_size,
+                                            batch_size=args.val_batch_size,
+                                            shuffle=False,
                                             num_workers=args.num_workers),
                         ref=get_test_loader(root=args.ref_dir,
                                             img_size=args.img_size,
                                             batch_size=args.val_batch_size,
-                                            shuffle=True,
+                                            shuffle=False,
                                             num_workers=args.num_workers))
         solver.sample(loaders)
     elif args.mode == 'eval':
@@ -133,11 +139,11 @@ if __name__ == '__main__':
                         help='Iterations to resume training/testing')
     parser.add_argument('--batch_size', type=int, default=8,
                         help='Batch size for training')
-    parser.add_argument('--val_batch_size', type=int, default=4,
+    parser.add_argument('--val_batch_size', type=int, default=21,
                         help='Batch size for validation')
     parser.add_argument('--lr', type=float, default=1e-4,
                         help='Learning rate for D, E and G')
-    parser.add_argument('--f_lr', type=float, default=1e-6,
+    parser.add_argument('--f_lr', type=float, default=1e-4,
                         help='Learning rate for F')
     parser.add_argument('--beta1', type=float, default=0.0,
                         help='Decay rate for 1st moment of Adam')
@@ -145,7 +151,7 @@ if __name__ == '__main__':
                         help='Decay rate for 2nd moment of Adam')
     parser.add_argument('--weight_decay', type=float, default=1e-4,
                         help='Weight decay for optimizer')
-    parser.add_argument('--num_outs_per_domain', type=int, default=2,
+    parser.add_argument('--num_outs_per_domain', type=int, default=3,
                         help='Number of generated images per domain during sampling')
 
     # misc
@@ -164,6 +170,8 @@ if __name__ == '__main__':
                         help='Directory containing training sketch images')
     parser.add_argument('--val_img_dir', type=str, default='data/celeba_hq/val',
                         help='Directory containing validation images')
+    parser.add_argument('--val_src_img_dir', type=str, default='data/celeba_hq/val',
+                        help='Directory containing validation images')
     parser.add_argument('--sample_dir', type=str, default='expr/samples',
                         help='Directory for saving generated images')
     parser.add_argument('--checkpoint_dir', type=str, default='expr/checkpoints',
@@ -177,6 +185,8 @@ if __name__ == '__main__':
     parser.add_argument('--result_dir', type=str, default='expr/results',
                         help='Directory for saving generated images and videos')
     parser.add_argument('--src_dir', type=str, default='assets/representative/celeba_hq/src',
+                        help='Directory containing input source images')
+    parser.add_argument('--src_skt_dir', type=str, default='assets/representative/celeba_hq/src',
                         help='Directory containing input source images')
     parser.add_argument('--ref_dir', type=str, default='assets/representative/celeba_hq/ref',
                         help='Directory containing input reference images')

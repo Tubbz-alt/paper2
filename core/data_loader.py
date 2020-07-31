@@ -223,7 +223,8 @@ class InputFetcher:
                            xs_src=xs, ys_src=ys,
                            x_ref=x_ref, y_ref=y_ref)
         elif self.mode == 'test':
-            inputs = Munch(x=x, y=y)
+            z_trg = torch.randn(x.size(0), self.latent_dim)
+            inputs = Munch(x=x, y=y, z_trg=z_trg)
         else:
             raise NotImplementedError
 

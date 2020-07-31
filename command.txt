@@ -9,9 +9,33 @@ python main.py --mode train --num_domains 9 --train_img_dir /mnt/d/works/dataset
 python main.py --mode train --num_domains 8 --train_img_dir /mnt/d/works/dataset/train_50/real --train_sketch_img_dir /mnt/d/works/dataset/train_50/sketch --val_img_dir /mnt/d/works/dataset/val_50/sketch --batch_size 4 --sample_every 500 
 python main.py --mode train --num_domains 8 --train_img_dir ~/dataset/train_50/real --train_sketch_img_dir ~/dataset/train_50/sketch --val_img_dir ~/dataset/val_50/real --batch_size 4 --sample_every 500 --resume_iter 1000
 
-
+python main.py --mode train --num_domains 14 --train_img_dir ~/dataset/train_80/real --train_sketch_img_dir ~/dataset/train_80/sketch --val_img_dir ~/dataset/val_80/real --batch_size 4 --sample_every 500
 CPU x86-64 6 cores AMD Ryzen 5 3600 
 GPU NVDIA GeForce RTX 2080 Ti
 
 
 python main.py --mode sample --num_domains 8 --train_img_dir ~/dataset/train_50/real --train_sketch_img_dir ~/dataset/train_50/sketch --val_img_dir ~/dataset/val_50/real --resume_iter 12000 --src_dir ~/dataset/train_50/sketch --ref_dir ~/dataset/val_50/real --checkpoint_dir /mnt/d/works/StarGan2-imm/expr-test/checkpoints/ --eval_dir /mnt/d/works/StarGan2-imm/expr-test/eval/ --result_dir /mnt/d/works/StarGan2-imm/expr-test/results/ --sample_dir /mnt/d/works/StarGan2-imm/expr-test/samples/
+
+
+python main.py --mode sample --num_domains 8 --src_dir /mnt/d/works/dataset/test_50/sketch --ref_dir /mnt/d/works/dataset/test_50/ref --checkpoint_dir /mnt/d/works/StarGan2-imm/expr-test/checkpoint-8000-normal/ --result_dir /mnt/d/works/StarGan2-imm/expr-test/results-normal/ --resume_iter 8000
+
+python main.py --mode sample --num_domains 8 --src_dir /mnt/d/works/dataset/test_50/real  --src_skt_dir /mnt/d/works/dataset/test_50/sketch --ref_dir /mnt/d/works/dataset/test_50/ref3 --checkpoint_dir /mnt/d/works/StarGan2-imm/expr-test/checkpoint-13500-unet/ --result_dir /mnt/d/works/StarGan2-imm/expr-test/results-unet/ --resume_iter 13500
+
+
+
+python main.py --mode eval --num_domains 8 --train_img_dir /mnt/d/works/dataset/test_50/real --val_img_dir /mnt/d/works/dataset/val_50/real --val_src_img_dir /mnt/d/works/dataset/test_50/sketch  --checkpoint_dir /mnt/d/works/StarGan2-imm/expr-test/checkpoint-8000-normal/ --eval_dir /mnt/d/works/StarGan2-imm/expr-test/eval-normal/ --resume_iter 8000
+
+python main.py --mode eval --num_domains 8 --train_img_dir /mnt/d/works/dataset/test_50/real --val_img_dir /mnt/d/works/dataset/test_50/ref --val_src_img_dir /mnt/d/works/dataset/test_50/sketch  --checkpoint_dir /mnt/d/works/StarGan2-imm/expr-test/checkpoint-13500-unet/ --eval_dir /mnt/d/works/StarGan2-imm/expr-test/eval-unet/ --resume_iter 13500
+
+
+python main.py --mode sample --num_domains 8 --src_dir /mnt/d/works/dataset/test_50/real  --src_skt_dir /mnt/d/works/dataset/test_50/sketch --ref_dir /mnt/d/works/dataset/test_50/ref3 --checkpoint_dir /mnt/d/works/StarGan2-imm/expr-test/checkpoint-13500-unet/ --result_dir /mnt/d/works/StarGan2-imm/expr-test/results-unet-2/ --resume_iter 13500
+
+
+##  continue 
+
+
+python main.py --mode sample --num_domains 8 --src_dir /mnt/d/works/dataset/test_50/real  --src_skt_dir /mnt/d/works/dataset/test_50/sketch --ref_dir /mnt/d/works/dataset/test_50/reffemale --checkpoint_dir /mnt/d/works/StarGan2-imm/expr-test/checkpoint-12500-unet-loss/ --result_dir /mnt/d/works/StarGan2-imm/expr-test/results-unet-loss-2/ --resume_iter 12500
+python main.py --mode sample --num_domains 8 --src_dir /mnt/d/works/dataset/test_50/real  --src_skt_dir /mnt/d/works/dataset/test_50/sketch --ref_dir /mnt/d/works/dataset/test_50/reffemale --checkpoint_dir /mnt/d/works/StarGan2-imm/expr-test/checkpoint-4000-normal/ --result_dir /mnt/d/works/StarGan2-imm/expr-test/results-normal-3/ --resume_iter 4000
+
+
+python main.py --mode train --num_domains 14 --train_img_dir /mnt/d/works/dataset/train_80/real --train_sketch_img_dir /mnt/d/works/dataset/train_80/sketch --val_img_dir /mnt/d/works/dataset/val_80/real --batch_size 4 --sample_every 500

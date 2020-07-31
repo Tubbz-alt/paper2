@@ -120,7 +120,7 @@ class Solver(nn.Module):
             x_ref, x_ref2, y_trg = inputs.x_ref, inputs.x_ref2, inputs.y_ref
             z_trg, z_trg2 = inputs.z_trg, inputs.z_trg2
 
-            masks = nets.fan.get_heatmap(x_real) if args.w_hpf > 0 else None
+            masks = nets.fan.get_heatmap(xs_real) if args.w_hpf > 0 else None
             # pix2pix 
             # d1_loss = compute_d1_loss(nets, args, x_real, xs_real)
             # self._reset_grad()
@@ -144,14 +144,14 @@ class Solver(nn.Module):
             # d_loss, d_losses_ref = compute_d_loss(
             #     nets, args, x_real, y_org, y_trg, x_ref=x_ref, masks=masks)
             d_loss_x_ref, d_losses_ref = compute_d_loss(
-                nets, args, x_real, xs_real, y_org, y_trg, x_ref=x_ref, masks=masks)
+                nets, args, x_real, xs_real, y_org, y_trg ,  x_ref=x_ref, masks=masks)
             self._reset_grad()
             d_loss_x_ref.backward()
             optims.discriminator.step()
 
             # train the generator
             g_loss_z_trg, g_losses_latent = compute_g_loss(
-                nets, args, x_real, xs_real, y_org, y_trg, z_trgs=[z_trg, z_trg2], masks=masks)
+                nets, args, x_real, xs_real, y_org, y_trg,  ys_org, z_trgs=[z_trg, z_trg2], masks=masks)
             self._reset_grad()
             g_loss_z_trg.backward()
             optims.generator.step()
@@ -159,12 +159,12 @@ class Solver(nn.Module):
             optims.style_encoder.step()
 
             g_loss_x_ref, g_losses_ref = compute_g_loss(
-                nets, args, x_real, xs_real, y_org, y_trg, x_refs=[x_ref, x_ref2], masks=masks)
+                nets, args, x_real, xs_real, y_org, y_trg, ys_org,  x_refs=[x_ref, x_ref2], masks=masks)
             self._reset_grad()
             g_loss_x_ref.backward()
             optims.generator.step()
-            optims.mapping_network.step()
-            optims.style_encoder.step()
+            # optims.mapping_network.step()
+            # optims.style_encoder.step()
 
             # compute moving average of network parameters
             moving_average(nets.generator, nets_ema.generator, beta=0.999)
@@ -213,14 +213,25 @@ class Solver(nn.Module):
         self._load_checkpoint(args.resume_iter)
 
         src = InputFetcher(loaders.src, None, None, args.latent_dim, 'test')
+        src_skt = InputFetcher(loaders.src_skt, None, None, args.latent_dim, 'test')
         ref = InputFetcher(loaders.ref, None, None, args.latent_dim, 'test')
-        for i in range(10):
+        for i in range(5):
             src_next = next(src)
+            src_skt_next = next(src_skt)
             ref_next = next(ref)
-            fname = ospj(args.result_dir, str(i) + '_reference.jpg')
+            fname = ospj(args.result_dir,  'female_' + str(i) + '_reference.jpg')
             print('Working on {}...'.format(fname))
-            utils.translate_using_reference(nets_ema, args, src_next.x, src_next.x, ref_next.x, ref_next.y, fname)
+            print("src_next.y", src_next.y)
+            # utils.translate_using_reference(nets_ema, args, src_next.x, src_next.y, src_skt_next.x, src_next.z_trg, ref_next.x, ref_next.y, fname)
+            
+            N, C, H, W = src_next.x.size()
+            print("N", N)
+            y_trg_list = [torch.tensor(y).repeat(N).to(src_next.x.device) for y in range(min(args.num_domains, 16))]
+            z_trg_list = torch.randn(args.num_outs_per_domain, 1, args.latent_dim).repeat(1, N, 1).to(src_next.x.device)
 
+            filename = ospj(args.result_dir, 'female_' + str(i) + 'latent.jpg')
+            utils.translate_using_latent(nets_ema, args, src_next.x, src_next.y, src_skt_next.x, y_trg_list, z_trg_list, 1.0, filename)
+            # utils.translate_using_latent(nets_ema, args, src_next.x, src_next.y, src_skt_next.x, ref_next.y, src_next.z_trg,  fname)
         # fname = ospj(args.result_dir, 'video_ref.mp4')
         # print('Working on {}...'.format(fname))
         # utils.video_ref(nets_ema, args, src.x, ref.x, ref.y, fname)
@@ -231,7 +242,7 @@ class Solver(nn.Module):
         nets_ema = self.nets_ema
         resume_iter = args.resume_iter
         self._load_checkpoint(args.resume_iter)
-        calculate_metrics(nets_ema, args, step=resume_iter, mode='latent')
+        # calculate_metrics(nets_ema, args, step=resume_iter, mode='latent')
         calculate_metrics(nets_ema, args, step=resume_iter, mode='reference')
 
 
@@ -288,7 +299,7 @@ def compute_d1_loss(nets, args, x_real, xs_real):
     loss_D = (loss_D_fake + loss_D_real) * 0.5
     return loss_D
 
-def compute_g_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trgs=None, x_refs=None, masks=None):
+def compute_g_loss(nets, args, x_real, xs_real, y_org, y_trg, ys_org, z_trgs=None, x_refs=None, masks=None):
     assert (z_trgs is None) != (x_refs is None)
     if z_trgs is not None:
         z_trg, z_trg2 = z_trgs
@@ -321,25 +332,23 @@ def compute_g_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trgs=None, x_ref
     loss_ds = torch.mean(torch.abs(x_fake - x_fake2))
 
     # image reconstruction loss
-    if z_trgs is not None:
-        s_trg = nets.mapping_network(z_trg, y_org)
-    else:
-        s_trg = nets.style_encoder(x_ref, y_org)
-    
-    x_fake = nets.generator(xs_real, s_trg, masks=masks)
-    loss_rec = torch.mean(torch.abs(x_fake - x_real))
+    masks = nets.fan.get_heatmap(xs_real) if args.w_hpf > 0 else None
+    s_org = nets.style_encoder(x_real, y_org)
+    x_rec_skt = nets.generator(xs_real, s_org, masks=masks)
+    loss_cyc_skt = torch.mean(torch.abs(x_rec_skt - x_real))
 
     # cycle-consistency loss
     masks = nets.fan.get_heatmap(x_fake) if args.w_hpf > 0 else None
-    s_org = nets.style_encoder(x_real, y_org)
+    # s_org = nets.style_encoder(x_real, y_org)
     x_rec = nets.generator(x_fake, s_org, masks=masks)
     loss_cyc = torch.mean(torch.abs(x_rec - x_real))
 
-    loss = loss_adv + args.lambda_sty * loss_sty - args.lambda_ds * loss_ds + args.lambda_cyc * loss_cyc + loss_rec
+    loss = loss_adv + args.lambda_sty * loss_sty - args.lambda_ds * loss_ds + args.lambda_cyc * loss_cyc + args.lambda_cyc * loss_cyc_skt
     return loss, Munch(adv=loss_adv.item(),
                        sty=loss_sty.item(),
                        ds=loss_ds.item(),
-                       cyc=loss_cyc.item())
+                       cyc=loss_cyc.item(),
+                       skt_cyc= loss_cyc_skt.item())
 
 
 def moving_average(model, model_test, beta=0.999):

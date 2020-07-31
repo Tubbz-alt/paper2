@@ -78,11 +78,17 @@ def translate_and_reconstruct(nets, args, x_src, xs_src, y_src, x_ref, y_ref, fi
     del x_concat
 
 @torch.no_grad()
-def translate_using_latent(nets, args, x_src, xs_real, y_trg_list, z_trg_list, psi, filename):
+def translate_using_latent(nets, args, x_src,  y_src, xs_real, y_trg_list, z_trg_list, psi, filename):
     N, C, H, W = x_src.size()
     latent_dim = z_trg_list[0].size(1)
+    print(latent_dim)
     x_concat = [x_src]
+    x_concat += [xs_real]
     masks = nets.fan.get_heatmap(x_src) if args.w_hpf > 0 else None
+    
+    x_src_style = nets.style_encoder(x_src, y_src)
+    s_recon = nets.generator(xs_real, x_src_style, masks=masks)
+    x_concat += [s_recon]
 
     for i, y_trg in enumerate(y_trg_list):
         z_many = torch.randn(10000, latent_dim).to(x_src.device)
@@ -100,9 +106,8 @@ def translate_using_latent(nets, args, x_src, xs_real, y_trg_list, z_trg_list, p
     x_concat = torch.cat(x_concat, dim=0)
     save_image(x_concat, N, filename)
 
-
 @torch.no_grad()
-def translate_using_reference(nets, args,x_src, xs_real, x_ref, y_ref, filename):
+def translate_using_reference(nets, args, x_src, y_src, xs_real, z_trg, x_ref, y_ref, filename):
     N, C, H, W = x_src.size()
     wb = torch.ones(1, C, H, W).to(x_src.device)
     x_src_with_wb = torch.cat([wb, xs_real], dim=0)
@@ -111,14 +116,24 @@ def translate_using_reference(nets, args,x_src, xs_real, x_ref, y_ref, filename)
     s_ref = nets.style_encoder(x_ref, y_ref)
     s_ref_list = s_ref.unsqueeze(1).repeat(1, N, 1)
     x_concat = [x_src_with_wb]
+
+    x_src_style = nets.style_encoder(x_src, y_src)
+    s_recon = nets.generator(xs_real, x_src_style, masks=masks)
+    x_rec_with_wb = torch.cat([wb, s_recon], dim=0)
+    x_concat += [x_rec_with_wb]
+
     for i, s_ref in enumerate(s_ref_list):
         x_fake = nets.generator(xs_real, s_ref, masks=masks)
         x_fake_with_ref = torch.cat([x_ref[i:i+1], x_fake], dim=0)
         x_concat += [x_fake_with_ref]
 
+    print(len(x_concat))
+
     x_concat = torch.cat(x_concat, dim=0)
     save_image(x_concat, N+1, filename)
+
     del x_concat
+
 
 @torch.no_grad()
 def debug_input_image(nets, args, x_src, xs_src, step):

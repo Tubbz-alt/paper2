@@ -42,11 +42,10 @@ def calculate_metrics(nets, args, step, mode):
             loader_ref = get_eval_loader(root=path_ref,
                                          img_size=args.img_size,
                                          batch_size=args.val_batch_size,
-                                         imagenet_normalize=False,
-                                         drop_last=True)
+                                         imagenet_normalize=False)
 
         for src_idx, src_domain in enumerate(src_domains):
-            path_src = os.path.join(args.val_img_dir, src_domain)
+            path_src = os.path.join(args.val_src_img_dir, src_domain)
             loader_src = get_eval_loader(root=path_src,
                                          img_size=args.img_size,
                                          batch_size=args.val_batch_size,
@@ -85,19 +84,19 @@ def calculate_metrics(nets, args, step, mode):
                     x_fake = nets.generator(x_src, s_trg, masks=masks)
                     group_of_images.append(x_fake)
 
-                    # save generated images to calculate FID later
+                    #save generated images to calculate FID later
                     for k in range(N):
                         filename = os.path.join(
                             path_fake,
                             '%.4i_%.2i.png' % (i*args.val_batch_size+(k+1), j+1))
                         utils.save_image(x_fake[k], ncol=1, filename=filename)
 
-                lpips_value = calculate_lpips_given_images(group_of_images)
-                lpips_values.append(lpips_value)
+                # lpips_value = calculate_lpips_given_images(group_of_images)
+                # lpips_values.append(lpips_value)
 
-            # calculate LPIPS for each task (e.g. cat2dog, dog2cat)
-            lpips_mean = np.array(lpips_values).mean()
-            lpips_dict['LPIPS_%s/%s' % (mode, task)] = lpips_mean
+            # # calculate LPIPS for each task (e.g. cat2dog, dog2cat)
+            # lpips_mean = np.array(lpips_values).mean()
+            # lpips_dict['LPIPS_%s/%s' % (mode, task)] = lpips_mean
 
         # delete dataloaders
         del loader_src
@@ -106,19 +105,18 @@ def calculate_metrics(nets, args, step, mode):
             del iter_ref
 
     # calculate the average LPIPS for all tasks
-    lpips_mean = 0
-    for _, value in lpips_dict.items():
-        lpips_mean += value / len(lpips_dict)
-    lpips_dict['LPIPS_%s/mean' % mode] = lpips_mean
+    # lpips_mean = 0
+    # for _, value in lpips_dict.items():
+    #     lpips_mean += value / len(lpips_dict)
+    # lpips_dict['LPIPS_%s/mean' % mode] = lpips_mean
 
-    # report LPIPS values
-    filename = os.path.join(args.eval_dir, 'LPIPS_%.5i_%s.json' % (step, mode))
-    utils.save_json(lpips_dict, filename)
+    # # report LPIPS values
+    # filename = os.path.join(args.eval_dir, 'LPIPS_%.5i_%s.json' % (step, mode))
+    # utils.save_json(lpips_dict, filename)
 
     # calculate and report fid values
     calculate_fid_for_all_tasks(args, domains, step=step, mode=mode)
-
-
+       
 def calculate_fid_for_all_tasks(args, domains, step, mode):
     print('Calculating FID for all tasks...')
     fid_values = OrderedDict()
