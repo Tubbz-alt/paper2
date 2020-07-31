@@ -146,6 +146,7 @@ def debug_image(nets, args, inputs, step):
     x_src, y_src = inputs.x_src, inputs.y_src
     x_ref, y_ref = inputs.x_ref, inputs.y_ref
     xs_src, ys_src = inputs.xs_src, inputs.ys_src
+    z_trg = inputs.z_trg
 
     device = inputs.x_src.device
     N = inputs.x_src.size(0)
@@ -164,7 +165,7 @@ def debug_image(nets, args, inputs, step):
 
     # reference-guided image synthesis
     filename = ospj(args.sample_dir, '%06d_reference.jpg' % (step))
-    translate_using_reference(nets, args, x_src, xs_src, x_ref, y_ref, filename)
+    translate_using_reference(nets, args, x_src, y_src, xs_src, z_trg, x_ref, y_ref, filename)
 
 
 # ======================= #
