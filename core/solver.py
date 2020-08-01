@@ -332,7 +332,7 @@ def compute_g_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trgs=None, x_ref
     x_rec = nets.generator(x_fake, s_org, masks=masks)
     loss_cyc = torch.mean(torch.abs(x_rec - x_real))
 
-    loss = loss_adv + args.lambda_sty * loss_sty - args.lambda_ds * loss_ds + args.lambda_cyc * loss_cyc + loss_rec
+    loss = loss_adv + args.lambda_sty * loss_sty - args.lambda_ds * loss_ds + args.lambda_cyc * loss_cyc +  args.lambda_cyc * loss_cyc_skt
     return loss, Munch(adv=loss_adv.item(),
                        sty=loss_sty.item(),
                        ds=loss_ds.item(),
