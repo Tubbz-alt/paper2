@@ -38,4 +38,10 @@ python main.py --mode sample --num_domains 8 --src_dir /mnt/d/works/dataset/test
 python main.py --mode sample --num_domains 8 --src_dir /mnt/d/works/dataset/test_50/real  --src_skt_dir /mnt/d/works/dataset/test_50/sketch --ref_dir /mnt/d/works/dataset/test_50/reffemale --checkpoint_dir /mnt/d/works/StarGan2-imm/expr-test/checkpoint-4000-normal/ --result_dir /mnt/d/works/StarGan2-imm/expr-test/results-normal-3/ --resume_iter 4000
 
 
+
 python main.py --mode train --num_domains 14 --train_img_dir /mnt/d/works/dataset/train_80/real --train_sketch_img_dir /mnt/d/works/dataset/train_80/sketch --val_img_dir /mnt/d/works/dataset/val_80/real --batch_size 4 --sample_every 500
+
+
+
+python main.py --mode sample --num_domains 14 --src_dir /mnt/d/works/dataset/test_80/real  --src_skt_dir /mnt/d/works/dataset/test_80/sketch --ref_dir /mnt/d/works/dataset/test_50/reffemale-14 --checkpoint_dir /mnt/d/works/StarGan2-imm/expr-test-2/checkpoint-unet-12000/ --result_dir /mnt/d/works/StarGan2-imm/expr-test-2/results-unet/ --resume_iter 12000
+python main.py --mode sample --num_domains 14 --src_dir /mnt/d/works/dataset/test_80/real-female  --src_skt_dir /mnt/d/works/dataset/test_80/sketch-female --ref_dir /mnt/d/works/dataset/test_80/reffemale-14 --checkpoint_dir /mnt/d/works/StarGan2-imm/expr-test-2/checkpoint-unet-12000/ --result_dir /mnt/d/works/StarGan2-imm/expr-test-2/results-unet/ --resume_iter 12000

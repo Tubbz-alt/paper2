@@ -215,7 +215,7 @@ class Solver(nn.Module):
         src = InputFetcher(loaders.src, None, None, args.latent_dim, 'test')
         src_skt = InputFetcher(loaders.src_skt, None, None, args.latent_dim, 'test')
         ref = InputFetcher(loaders.ref, None, None, args.latent_dim, 'test')
-        for i in range(5):
+        for i in range(8):
             src_next = next(src)
             src_skt_next = next(src_skt)
             ref_next = next(ref)
@@ -229,7 +229,7 @@ class Solver(nn.Module):
             y_trg_list = [torch.tensor(y).repeat(N).to(src_next.x.device) for y in range(min(args.num_domains, 16))]
             z_trg_list = torch.randn(args.num_outs_per_domain, 1, args.latent_dim).repeat(1, N, 1).to(src_next.x.device)
 
-            filename = ospj(args.result_dir, 'female_' + str(i) + 'latent.jpg')
+            filename = ospj(args.result_dir, 'male_' + str(i) + '_latent.jpg')
             utils.translate_using_latent(nets_ema, args, src_next.x, src_next.y, src_skt_next.x, y_trg_list, z_trg_list, 1.0, filename)
             # utils.translate_using_latent(nets_ema, args, src_next.x, src_next.y, src_skt_next.x, ref_next.y, src_next.z_trg,  fname)
         # fname = ospj(args.result_dir, 'video_ref.mp4')
