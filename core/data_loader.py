@@ -219,9 +219,12 @@ class InputFetcher:
         elif self.mode == 'val':
             xs, ys = self._fetch_inputs_sketch()
             x_ref, y_ref = self._fetch_inputs()
+            z_trg = torch.randn(x.size(0), self.latent_dim)
+            z_trg2 = torch.randn(x.size(0), self.latent_dim)
             inputs = Munch(x_src=x, y_src=y,
                            xs_src=xs, ys_src=ys,
-                           x_ref=x_ref, y_ref=y_ref)
+                           x_ref=x_ref, y_ref=y_ref,
+                           z_trg=z_trg, z_trg2=z_trg2)
         elif self.mode == 'test':
             z_trg = torch.randn(x.size(0), self.latent_dim)
             inputs = Munch(x=x, y=y, z_trg=z_trg)
