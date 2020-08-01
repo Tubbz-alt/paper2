@@ -92,12 +92,12 @@ def calculate_metrics(nets, args, step, mode):
                             '%.4i_%.2i.png' % (i*args.val_batch_size+(k+1), j+1))
                         utils.save_image(x_fake[k], ncol=1, filename=filename)
 
-                lpips_value = calculate_lpips_given_images(group_of_images)
-                lpips_values.append(lpips_value)
+            #     lpips_value = calculate_lpips_given_images(group_of_images)
+            #     lpips_values.append(lpips_value)
 
-            # calculate LPIPS for each task (e.g. cat2dog, dog2cat)
-            lpips_mean = np.array(lpips_values).mean()
-            lpips_dict['LPIPS_%s/%s' % (mode, task)] = lpips_mean
+            # # calculate LPIPS for each task (e.g. cat2dog, dog2cat)
+            # lpips_mean = np.array(lpips_values).mean()
+            # lpips_dict['LPIPS_%s/%s' % (mode, task)] = lpips_mean
 
         # delete dataloaders
         del loader_src
@@ -106,14 +106,14 @@ def calculate_metrics(nets, args, step, mode):
             del iter_ref
 
     # calculate the average LPIPS for all tasks
-    lpips_mean = 0
-    for _, value in lpips_dict.items():
-        lpips_mean += value / len(lpips_dict)
-    lpips_dict['LPIPS_%s/mean' % mode] = lpips_mean
+    # lpips_mean = 0
+    # for _, value in lpips_dict.items():
+    #     lpips_mean += value / len(lpips_dict)
+    # lpips_dict['LPIPS_%s/mean' % mode] = lpips_mean
 
-    # report LPIPS values
-    filename = os.path.join(args.eval_dir, 'LPIPS_%.5i_%s.json' % (step, mode))
-    utils.save_json(lpips_dict, filename)
+    # # report LPIPS values
+    # filename = os.path.join(args.eval_dir, 'LPIPS_%.5i_%s.json' % (step, mode))
+    # utils.save_json(lpips_dict, filename)
 
     # calculate and report fid values
     calculate_fid_for_all_tasks(args, domains, step=step, mode=mode)
