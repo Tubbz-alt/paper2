@@ -120,7 +120,7 @@ class Solver(nn.Module):
             x_ref, x_ref2, y_trg = inputs.x_ref, inputs.x_ref2, inputs.y_ref
             z_trg, z_trg2 = inputs.z_trg, inputs.z_trg2
 
-            masks = nets.fan.get_heatmap(x_real) if args.w_hpf > 0 else None
+            masks = nets.fan.get_heatmap(xs_real) if args.w_hpf > 0 else None
             # pix2pix 
             # d1_loss = compute_d1_loss(nets, args, x_real, xs_real)
             # self._reset_grad()
@@ -321,17 +321,14 @@ def compute_g_loss(nets, args, x_real, xs_real, y_org, y_trg, z_trgs=None, x_ref
     loss_ds = torch.mean(torch.abs(x_fake - x_fake2))
 
     # image reconstruction loss
-    if z_trgs is not None:
-        s_trg = nets.mapping_network(z_trg, y_org)
-    else:
-        s_trg = nets.style_encoder(x_ref, y_org)
-    
-    x_fake = nets.generator(xs_real, s_trg, masks=masks)
-    loss_rec = torch.mean(torch.abs(x_fake - x_real))
+    masks = nets.fan.get_heatmap(xs_real) if args.w_hpf > 0 else None
+    s_org = nets.style_encoder(x_real, y_org)
+    x_rec_skt = nets.generator(xs_real, s_org, masks=masks)
+    loss_cyc_skt = torch.mean(torch.abs(x_rec_skt - x_real))
 
     # cycle-consistency loss
     masks = nets.fan.get_heatmap(x_fake) if args.w_hpf > 0 else None
-    s_org = nets.style_encoder(x_real, y_org)
+    # s_org = nets.style_encoder(x_real, y_org)
     x_rec = nets.generator(x_fake, s_org, masks=masks)
     loss_cyc = torch.mean(torch.abs(x_rec - x_real))
 
